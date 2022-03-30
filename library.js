@@ -1,9 +1,51 @@
-//DATASET
+
+/*************** INIT DATASET ***************/
 // ngrams - article - *.csv : wordcount of each article from 1 to n
 // ngrams - article 1-10.csv : the aggregated word count of n articles 
 // article.csv : article metadata
-// By default, aggregated dataset will be loaded
-d3.csv('dataset/ngrams - article 1-10.csv').then(display);
+
+  var article = [];
+  //By default show dataset of all articles
+  article[0] = d3.csv('dataset/ngrams - article 1-10.csv').then(display);
+
+  // Create working dataset to reference article info
+  var articleRef = d3.csv('dataset/article.csv').then(function(data){
+    data.forEach(x=>{
+      articleRef[x.article_id]={
+        'title': x.title,
+        'author': x.author
+    }
+  });
+
+  //Display article title
+  var count = 1;
+  while (count<11){
+    var article = d3.selectAll('.article-select')
+    .append('div')
+    .append('a')
+    .attr('class','article-node')
+    .attr('id',count)
+    .text(articleRef[count].title);
+    count++;
+  }
+
+  d3.selectAll('a.article-node').on('click',function(){
+    var articleID = d3.select(this).attr("id");
+    console.log(articleID);
+    if (articleID!=0){
+      loadFile('dataset/ngrams - article '+articleID+'.csv');
+    } else{
+      loadFile('dataset/ngrams - article 1-10.csv');
+    }
+    
+  });
+});
+
+function loadFile(file){
+  d3.csv(file).then(display);
+}
+
+
 
 
 //TO DO: 
@@ -14,24 +56,20 @@ d3.csv('dataset/ngrams - article 1-10.csv').then(display);
 // - Display info (title, author) for each article
 
 // new bubble chart instance
-var myBubbleChart = bubbleChart();
 
 // function called once promise is resolved and data is loaded from csv
 // calls bubble chart function to display inside #vis div
 function display(data) {
+  var myBubbleChart = bubbleChart();
   myBubbleChart('.visual-container', data);
 }
 
 // bubbleChart creation function; instantiate new bubble chart given a DOM element to display it in and a dataset to visualise
 function bubbleChart() {
   const width = 900;
-  const height = 700;
-
-  // location to centre the bubbles
-  const centre = { x: width/2, y: height/2 };
-
-  // strength to apply to the position forces
-  const forceStrength = 0.03;
+  const height = 800;
+  const centre = { x: width/2, y: height/2 };   // location to centre the bubbles
+  const forceStrength = 0.03; // strength to apply to the position forces
 
   // these will be set in createNodes and chart functions
   var svg = null;
@@ -55,24 +93,21 @@ function bubbleChart() {
   // force simulation starts up automatically, which we don't want as there aren't any nodes yet
   simulation.stop();
 
-  // set up colour scale
-  const fillColour = d3.scaleOrdinal()
-  	.domain(["1", "2", "3", "5", "99"])
-  	.range(["#0074D9", "#7FDBFF", "#39CCCC", "#3D9970", "#AAAAAA"]);
+  var fillColour;
 
-  // data manipulation function takes raw data from csv and converts it into an array of node objects
-  // each node will store data and visualisation values to draw a bubble
-  // rawData is expected to be an array of data objects
-  // function returns the new node array, with a node for each element in the rawData input
   function createNodes(rawData) {
-    // use max size in the data as the max in the scale's domain
-    // note we have to ensure that size is a number
+
     const maxSize = d3.max(rawData, d => +d.count);
 
     // size bubbles based on area
     const radiusScale = d3.scaleSqrt()
       .domain([0, maxSize])
-      .range([0, 100]);
+      .range([0, 80]);
+      
+    // set up colour scale  
+    fillColour = d3.scaleSequential()
+    .domain([1, maxSize])
+    .interpolator(d3.interpolateWarm);
 
     // use map() to convert raw data into node data
     const myNodes = rawData.map(d => ({
@@ -86,11 +121,11 @@ function bubbleChart() {
     return myNodes;
   }
 
-  // main entry point to bubble chart, returned by parent closure
-  // prepares rawData for visualisation and adds an svg element to the provided selector and starts the visualisation process
   var chart = function chart(selector, rawData) {
     // convert raw data into nodes data
     nodes = createNodes(rawData);
+    //clear all svg before drawing
+    d3.selectAll("svg").remove();
 
     // create svg element inside provided selector
     svg = d3.select(selector)
@@ -115,14 +150,16 @@ function bubbleChart() {
       .append('text')
       .attr('dy', '.3em')
       .style('text-anchor', 'middle')
-      .text(d => d.ngram);
+      .append("tspan")
+      .text(d => d.ngram + ' ' + d.size);    
+
+    // drawColorLegend(fillColour);
 
     // set simulation's nodes to our newly created nodes array
     // simulation starts running automatically once nodes are set
     simulation.nodes(nodes)
       .on('tick', ticked)
-      .restart();
-  
+      .restart();  
   }
 
 
@@ -143,7 +180,108 @@ function bubbleChart() {
   return chart;
 }
 
+/**************** DRAW LEGEND ********************/
 
+// https://beta.observablehq.com/@tmcw/d3-scalesequential-continuous-color-legend-example
+function drawColorLegend(colorSwatch) {
+  const legendWidth = 200;
+  const legendHeight = 20;
+  const scales = {
+    // x: d3.scaleLinear(),
+    // y: d3.scaleLinear(),
+    // do not linearly scale radius...
+    // area = pi * r * r, so use sqrt of r!
+    // r: d3.scaleSqrt(),
+    fill: colorSwatch
+  };
+
+  // place legend in its own group
+  const group = d3.selectAll(".legend").append('g').attr('id', 'color-legend');
+
+  // shift legend to appropriate position
+  group.attr('transform', 'translate(0,0)');
+
+  const title = group.append('text')
+    .attr('class', 'axis-title')
+    .text('Legend:');
+
+  title.attr('dy', 12);
+
+  // lets draw the rectangle, but it won't have a fill just yet
+  const colorbox = group.append('rect')
+    .attr('x', 0)
+    .attr('y', 18)
+    .attr('width', legendWidth)
+    .attr('height', legendHeight);
+
+  // we need to create a linear gradient for our color legend
+  // this defines a color at a percent offset
+  // https://developer.mozilla.org/en-US/docs/Web/SVG/Element/linearGradient
+
+  // this is easier if we create a scale to map our colors to percents
+
+  // get the domain first (we do not want the middle value from the diverging scale)
+  const colorDomain = [d3.min(colorSwatch.domain()), d3.max(colorSwatch.domain())];
+  console.log(colorDomain);
+  // add a new scale to go from color tick to percent
+  scales.percent = d3.scaleLinear()
+    .range([0, 100])
+    .domain(colorSwatch);
+
+  // we have to first add gradients
+  const defs = d3.selectAll(".legend").append('defs');
+
+  // add a color stop per data tick
+  // input  (ticks)   : [-20, ..., 15, ..., 50]
+  // output (percents): [  0, ..., 50, ..., 100]
+  defs.append('linearGradient')
+    .attr('id', 'gradient2')
+    .selectAll('stop')
+    .data(scales.fill.ticks(200))
+    .enter()
+    .append('stop')
+    .attr('offset', d => scales.percent(d) + '%')
+    .attr('stop-color', d => scales.fill(d));
+
+  // draw the color rectangle with the gradient
+  colorbox.attr('fill', 'url(#gradient2)');
+
+  // now we need to draw tick marks for our scale
+  // we can create a legend that will map our data domain to the legend colorbox
+  scales.legend = d3.scaleLinear()
+    .domain(colorDomain)
+    .range([0, legendWidth]);
+
+  // i tend to keep scales global so i can debug them in the console
+  // in this case there really is no need for the percent and legend scales
+  // to be accessible outside of this function
+
+  const legendAxis = d3.axisBottom(scales.legend)
+    .tickValues(scales.fill.domain())
+    .tickSize(legendHeight)
+    .tickSizeOuter(0);
+
+  const axisGroup = group.append('g')
+    .attr('id', 'color-axis')
+    .attr('transform', 'translate(0, 18)')
+    .call(legendAxis);
+
+  // now lets tighten up the tick labels a bit so they don't stick out
+  axisGroup.selectAll('text')
+    .each(function(d, i) {
+      // set the first tick mark to anchor at the start
+      if (i == 0) {
+        d3.select(this).attr('text-anchor', 'start');
+      }
+      // set the last tick mark to anchor at the end
+      else if (i == legendAxis.tickValues().length - 1) {
+        d3.select(this).attr('text-anchor', 'end');
+      }
+    });
+
+}
+
+/************ DRAW CIRCLE LEGEND ************/
 
 
 

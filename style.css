@@ -4,6 +4,10 @@ body{
 	color: #4c4c4c;
 }
 
+a{
+	cursor: pointer;
+}
+
 .container{
 	width: 960px;
 	margin: 0 auto;
@@ -72,6 +76,10 @@ body{
 
 /* Visualization */
 text{
-	font-size: 1em;
+	font-size: 0.7em;
+	fill: #fff;
 }
 
+tspan{
+	display: block;
+}
