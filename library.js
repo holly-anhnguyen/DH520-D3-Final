@@ -45,16 +45,6 @@ function loadFile(file){
   d3.csv(file).then(display);
 }
 
-
-
-
-//TO DO: 
-// - Load dataset of each article from 1 to 10
-// - Write function to generate a list of button and assign according dataset for each button
-// - Write function to update when users select between articles
-// - Load dataset article.csv for reference
-// - Display info (title, author) for each article
-
 // new bubble chart instance
 
 // function called once promise is resolved and data is loaded from csv
@@ -103,7 +93,7 @@ function bubbleChart() {
     const radiusScale = d3.scaleSqrt()
       .domain([0, maxSize])
       .range([0, 80]);
-      
+
     // set up colour scale  
     fillColour = d3.scaleSequential()
     .domain([1, maxSize])
