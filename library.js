@@ -1,77 +1,81 @@
-/*************** DATASET FORMAT ***************/
+// The project based on 4 sources:
+// Display bubble chart: https://bl.ocks.org/officeofjane/a70f4b44013d06b9c0a973f163d8ab7a
+// Legend bar: https://observablehq.com/@d3/color-legend
+// Legend of bubble size: https://d3-graph-gallery.com/graph/bubble_legend.html
+// Add tooltip https://d3-graph-gallery.com/graph/interactivity_tooltip.html#template
+
+/*************** LOAD AND DISPLAY DATASET ***************/
+// Dataset naming convention
 // ngrams - article - *.csv : wordcount of each article from 1 to n
 // ngrams - article 1-10.csv : the aggregated word count of n articles 
 // article.csv : article metadata
 
-  var article = [];
-  //By default show dataset of all articles
-  article[0] = d3.csv('dataset/ngrams - article 1-10.csv').then(display);
-  displayArticleInfo(0);
+var article = [];
+//By default show dataset of all articles
+article[0] = d3.csv('dataset/ngrams - article 1-10.csv').then(display);
+displayArticleInfo(0);
 
-  // Create working dataset
-  var articleRef = d3.csv('dataset/article.csv').then(function(data){
-    data.forEach(x=>{
-      articleRef[x.article_id]={
-        'title': x.title,
-        'author': x.author
-      }
-    });
-    loadArticle();
+// Create working dataset
+var articleRef = d3.csv('dataset/article.csv').then(function(data) {
+  data.forEach(x => {
+    articleRef[x.article_id] = {
+      'title': x.title,
+      'author': x.author
+    }
   });
-
+  loadArticle();
+});
 
 // Display the list of articles from csv to UI
 // Loading article depends on naming convention and unique number in csv name.
-function loadArticle(){
-
-  //Display article title
+function loadArticle() {
   var count = 1;
-  while (count<11){
+  while (count < 11) {
     var article = d3.selectAll('.article-select')
-    .append('div')
-    .append('a')
-    .attr('class','article-node')
-    .attr('id',count)
-    .text(articleRef[count].title);
+      .append('div')
+      .append('a')
+      .attr('class', 'article-node')
+      .attr('id', count)
+      .text(articleRef[count].title); //Display article title on the left side list
     count++;
   }
 
   //Run through all article to assign unique id and link to csv file for on-click event
-  d3.selectAll('a.article-node').on('click',function(){
+  d3.selectAll('a.article-node').on('click', function() {
     var articleID = d3.select(this).attr("id");
-    if (articleID!=0){
-      loadFile('dataset/ngrams - article '+articleID+'.csv'); 
-    } else{
+    if (articleID != 0) {
+      loadFile('dataset/ngrams - article ' + articleID + '.csv');
+    } else {
       loadFile('dataset/ngrams - article 1-10.csv'); // the csv of all articles
     }
     displayArticleInfo(articleID);
   });
 
   //Add selecting state for each article
-  d3.selectAll('.article-select>div').on('click',function(){
-    d3.selectAll('.article-select>div').attr('class',''); //Remove 'selected' class first    
-    d3.select(this).attr('class','selected'); //Add 'selected' class for target object  
-  });  
+  d3.selectAll('.article-select>div').on('click', function() {
+    d3.selectAll('.article-select>div').attr('class', ''); //Remove 'selected' class first    
+    d3.select(this).attr('class', 'selected'); //Add 'selected' class for target object  
+  });
 
 }
 
 //Display title and author on top of visualization
-function displayArticleInfo(articleID){
+function displayArticleInfo(articleID) {
   //clear content before doing anything
   d3.selectAll('.article-header *').remove();
 
-  if(articleID!=0){ // Not all article
+  if (articleID != 0) { // Not all article
     d3.selectAll('.article-header').append('h1').text(articleRef[articleID].title);
     d3.selectAll('.article-header').append('p').text('Author(s): ' + articleRef[articleID].author);
-  }else{
+  } else {
     d3.selectAll('.article-header').append('h1').text('All articles');
-    d3.selectAll('.article-header').append('p').text('Multiple authors');  
+    d3.selectAll('.article-header').append('p').text('Multiple authors');
   }
 }
 
 
 // Load csv file to according article
-function loadFile(file){
+function loadFile(file) {
   d3.csv(file).then(display);
 }
 
@@ -81,15 +85,20 @@ function display(data) {
   myBubbleChart('.visual-container', data);
 }
 
+//The code was modified based on https://bl.ocks.org/officeofjane/a70f4b44013d06b9c0a973f163d8ab7a
 // instantiate new bubble chart given a DOM element to display it in and a dataset to visualise
 function bubbleChart() {
   const width = 980;
-  const height = 900;
-  const centre = { x: width/2, y: height/2 }; // location to centre the bubbles
+  const height = 800;
+  const centre = {
+    x: width / 2,
+    y: height / 2
+  }; // location to centre the bubbles
   const forceStrength = 0.03; // strength to apply to the position forces
 
   // these will be set in createNodes and chart functions
   var svg = null;
+  var element = null;
   var bubbles = null;
   var labels = null;
   var nodes = [];
@@ -111,8 +120,9 @@ function bubbleChart() {
   simulation.stop();
 
   var fillColour;
-  var maxSize  = 0;
-  var minSize  = 0;
+  var maxSize = 0;
+  var minSize = 0;
+  var Tooltip;
 
   function createNodes(rawData) {
 
@@ -126,8 +136,8 @@ function bubbleChart() {
 
     // set up colour scale  
     fillColour = d3.scaleSequential()
-    .domain([1, maxSize])
-    .interpolator(d3.interpolateWarm);
+      .domain([1, maxSize])
+      .interpolator(d3.interpolateWarm);
 
     // use map() to convert raw data into node data
     const myNodes = rawData.map(d => ({
@@ -155,7 +165,7 @@ function bubbleChart() {
       .attr('height', height);
 
     // bind nodes data to circle elements
-    const elements = svg.selectAll('.bubble')
+    elements = svg.selectAll('.bubble')
       .data(nodes, d => d.ngram)
       .enter()
       .append('g');
@@ -177,36 +187,80 @@ function bubbleChart() {
     wordCount = elements
       .selectAll('text')
       .append("tspan")
-      .attr('dy','1.1em')
+      .attr('dy', '1.1em')
       .text(d => d.size);
 
     // set simulation's nodes to our newly created nodes array
     // simulation starts running automatically once nodes are set
     simulation.nodes(nodes)
       .on('tick', ticked)
-      .restart();  
+      .restart();
 
     // show legend
     Legend(d3.scaleSequential([0, maxSize], d3.interpolateWarm), {
       title: "Word count"
     });
-    bubbleSizeLegend(minSize,maxSize);
-  }
+    bubbleSizeLegend(minSize, maxSize);
 
-  // Callback function called after every tick of the force simulation
-  // Re-position x and y of circle and labels 
-  function ticked() {
-    bubbles
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y);
+    // create a tooltip
+    Tooltip = d3.select(".visual-container")
+      .append("div")
+      .style("opacity", 0)
+      .attr("class", "tooltip")
+      .style("background-color", "white")
+      .style("border", "solid")
+      .style("border-width", "2px")
+      .style("border-radius", "5px")
+      .style("padding", "5px");
 
-    labels
-      .attr('x', d => d.x)
-      .attr('y', d => d.y);
+    // Callback function called after every tick of the force simulation
+    // Re-position x and y of circle and labels 
+    function ticked() {
+      bubbles
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y);
 
-    wordCount
-      .attr('x', d => d.x)
-      .attr('y', d => d.y);      
+      labels
+        .attr('x', d => d.x)
+        .attr('y', d => d.y);
+
+      wordCount
+        .attr('x', d => d.x)
+        .attr('y', d => d.y);
+
+      //Show tooltips on mouse event
+      elements
+        .on("mouseover", mouseover)
+        .on("mousemove", mousemove)
+        .on("mouseleave", mouseleave);
+    }
+
+    // Three function that change the tooltip when user hover / move / leave a cell
+    var mouseover = function(d) {
+      Tooltip
+        .style("opacity", 1);
+      d3.select(this)
+        .style("opacity", 0.8);
+    }
+    var mousemove = function(d) {
+      var coordinates = d3.pointer(d, d3.select(this).node());
+      var x = coordinates[0];
+      var y = coordinates[1];
+      var tooltipText = d3.select(this).selectAll('tspan').data();
+
+      Tooltip
+        .html('Word: ' + tooltipText[0].ngram + '<br/>' + "Count: " + tooltipText[0].count)
+        .style("left", (x + 340) + "px")
+        .style("top", (y + 220) + "px");
+    }
+
+    var mouseleave = function(d) {
+      Tooltip
+        .style("opacity", 0);
+      d3.select(this)
+        .style("stroke", "none")
+        .style("opacity", 1);
+    }
   }
   return chart;
 }
@@ -220,7 +274,7 @@ function bubbleChart() {
 function Legend(color, {
   title,
   tickSize = 6,
-  width = 320, 
+  width = 320,
   height = 44 + tickSize,
   marginTop = 18,
   marginRight = 0,
@@ -244,11 +298,11 @@ function Legend(color, {
   }
 
   const svg = d3.selectAll('.legend-color').append("svg")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .style("overflow", "visible")
-      .style("display", "block");
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewBox", [0, 0, width, height])
+    .style("overflow", "visible")
+    .style("display", "block");
 
   let tickAdjust = g => g.selectAll(".tick line").attr("y1", marginTop + marginBottom - height);
   let x;
@@ -260,27 +314,30 @@ function Legend(color, {
     x = color.copy().rangeRound(d3.quantize(d3.interpolate(marginLeft, width - marginRight), n));
 
     svg.append("image")
-        .attr("x", marginLeft)
-        .attr("y", marginTop)
-        .attr("width", width - marginLeft - marginRight)
-        .attr("height", height - marginTop - marginBottom)
-        .attr("preserveAspectRatio", "none")
-        .attr("xlink:href", ramp(color.copy().domain(d3.quantize(d3.interpolate(0, 1), n))).toDataURL());
+      .attr("x", marginLeft)
+      .attr("y", marginTop)
+      .attr("width", width - marginLeft - marginRight)
+      .attr("height", height - marginTop - marginBottom)
+      .attr("preserveAspectRatio", "none")
+      .attr("xlink:href", ramp(color.copy().domain(d3.quantize(d3.interpolate(0, 1), n))).toDataURL());
   }
 
   // Sequential
   else if (color.interpolator) {
     x = Object.assign(color.copy()
-        .interpolator(d3.interpolateRound(marginLeft, width - marginRight)),
-        {range() { return [marginLeft, width - marginRight]; }});
+      .interpolator(d3.interpolateRound(marginLeft, width - marginRight)), {
+        range() {
+          return [marginLeft, width - marginRight];
+        }
+      });
 
     svg.append("image")
-        .attr("x", marginLeft)
-        .attr("y", marginTop)
-        .attr("width", width - marginLeft - marginRight)
-        .attr("height", height - marginTop - marginBottom)
-        .attr("preserveAspectRatio", "none")
-        .attr("xlink:href", ramp(color.interpolator()).toDataURL());
+      .attr("x", marginLeft)
+      .attr("y", marginTop)
+      .attr("width", width - marginLeft - marginRight)
+      .attr("height", height - marginTop - marginBottom)
+      .attr("preserveAspectRatio", "none")
+      .attr("xlink:href", ramp(color.interpolator()).toDataURL());
 
     // scaleSequentialQuantile doesn’t implement ticks or tickFormat.
     if (!x.ticks) {
@@ -295,54 +352,60 @@ function Legend(color, {
   }
 
   svg.append("g")
-      .attr("transform", `translate(0,${height - marginBottom})`)
-      .call(d3.axisBottom(x)
-        .ticks(ticks, typeof tickFormat === "string" ? tickFormat : undefined)
-        .tickFormat(typeof tickFormat === "function" ? tickFormat : undefined)
-        .tickSize(tickSize)
-        .tickValues(tickValues))
-      .call(tickAdjust)
-      .call(g => g.select(".domain").remove())
-      .call(g => g.append("text")
-        .attr("x", marginLeft)
-        .attr("y", marginTop + marginBottom - height - 6)
-        .attr("text-anchor", "start")
-        .attr("class", "title")
-        .text(title));
+    .attr("transform", `translate(0,${height - marginBottom})`)
+    .call(d3.axisBottom(x)
+      .ticks(ticks, typeof tickFormat === "string" ? tickFormat : undefined)
+      .tickFormat(typeof tickFormat === "function" ? tickFormat : undefined)
+      .tickSize(tickSize)
+      .tickValues(tickValues))
+    .call(tickAdjust)
+    .call(g => g.select(".domain").remove())
+    .call(g => g.append("text")
+      .attr("x", marginLeft)
+      .attr("y", marginTop + marginBottom - height - 6)
+      .attr("text-anchor", "start")
+      .attr("class", "title")
+      .text(title));
 
   return svg.node();
 }
 
 /**************** DRAW LEGEND BUBBLE SIZE *******************/
+// Code reference: https://d3-graph-gallery.com/graph/bubble_legend.html
 
-function bubbleSizeLegend(minSize, maxSize){
+function bubbleSizeLegend(minSize, maxSize) {
   // append the svg object to the body of the page
-  var height = 100
+  var height = 80
   var width = 220
   var svg = d3.select(".legend-size")
     .append("svg")
-      .attr("width", width)
-      .attr("height", height)
+    .attr("width", width)
+    .attr("height", height)
 
-  // scaling
+  // Scaling
   var size = d3.scaleSqrt()
-    .domain([1, maxSize])  // What's in the data, let's say it is percentage
-    .range([1, 40])  // Size in pixel
+    .domain([1, maxSize]) // What's in the data, let's say it is percentage
+    .range([1, 38]) // Size in pixel
+
   // Add legend: circles
-  var valuesToShow = [minSize, d3.median([minSize, maxSize]), maxSize];
+  var valuesToShow = [minSize, Math.round(d3.median([minSize, maxSize])), maxSize];
   var xCircle = 80;
   var xLabel = 180;
-  var yCircle = 80;
+  var yCircle = 78;
   svg
     .selectAll("legend")
     .data(valuesToShow)
     .enter()
     .append("circle")
-      .attr("cx", xCircle)
-      .attr("cy", function(d){ return yCircle - size(d) } )
-      .attr("r", function(d){ return size(d) })
-      .style("fill", "none")
-      .attr("stroke", "black")
+    .attr("cx", xCircle)
+    .attr("cy", function(d) {
+      return yCircle - size(d)
+    })
+    .attr("r", function(d) {
+      return size(d)
+    })
+    .style("fill", "none")
+    .attr("stroke", "black")
 
   // Add segments
   svg
@@ -350,12 +413,18 @@ function bubbleSizeLegend(minSize, maxSize){
     .data(valuesToShow)
     .enter()
     .append("line")
-      .attr('x1', function(d){ return xCircle + size(d) } )
-      .attr('x2', xLabel)
-      .attr('y1', function(d){ return yCircle - size(d) } )
-      .attr('y2', function(d){ return yCircle - size(d) } )
-      .attr('stroke', 'black')
-      .style('stroke-dasharray', ('2,2'))
+    .attr('x1', function(d) {
+      return xCircle + size(d)
+    })
+    .attr('x2', xLabel)
+    .attr('y1', function(d) {
+      return yCircle - size(d)
+    })
+    .attr('y2', function(d) {
+      return yCircle - size(d)
+    })
+    .attr('stroke', 'black')
+    .style('stroke-dasharray', ('2,2'))
 
   // Add labels
   svg
@@ -363,10 +432,14 @@ function bubbleSizeLegend(minSize, maxSize){
     .data(valuesToShow)
     .enter()
     .append("text")
-      .attr('x', xLabel)
-      .attr('y', function(d){ return yCircle - size(d) } )
-      .text( function(d){ return d } )
-      .style("font-size", "0.7em")
-      .style("font-weight", "bold")
-      .attr('alignment-baseline', 'middle')
+    .attr('x', xLabel)
+    .attr('y', function(d) {
+      return yCircle - size(d)
+    })
+    .text(function(d) {
+      return d
+    })
+    .style("font-size", "0.7em")
+    .style("font-weight", "bold")
+    .attr('alignment-baseline', 'middle')
 }

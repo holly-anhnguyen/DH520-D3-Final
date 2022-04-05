@@ -8,6 +8,12 @@ a{
 	cursor: pointer;
 }
 
+h1{
+	font-size: 1.6em;
+    margin-bottom: 5px;
+    line-height: 1em;
+}
+
 .container{
 	width: 1200px;
 	margin: 0 auto;
@@ -78,12 +84,11 @@ a{
 	display: flex;
 }
 
-/* Legend */
-
 
 /* List of articles */
 .article-select{
 	margin-top: 20px;
+	width: 100%;
 }
 .article-select>div{
     margin-bottom: 6px;
@@ -100,17 +105,19 @@ a{
 	color: #fff;
 	border-radius: 3px;
 }
+
 /* Visualization */
-/*.visual-container svg{
-	background-color: #4c4c4c;
-}*/
+
 text{
 	font-size: 0.7em;
 	fill: #fff;
 }
-
+circle{
+	cursor: pointer;
+}
 .legend {
 	display: flex;
+	justify-content: center;
 }
 
 .legend text{
@@ -118,6 +125,21 @@ text{
 	fill: #4c4c4c;
 }
 
-tspan{
-	display: block;
+.legend-color{
+	padding-top: 15px;
+}
+
+.visual-section{
+	padding-left: 15px;
+}
+.article-header{
+	text-align: center;
+}
+
+.article-header p{
+	margin-top: 0;
+	font-style: italic;
+}
+.tooltip{
+	position: absolute;
 }
