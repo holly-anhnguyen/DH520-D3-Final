@@ -250,8 +250,8 @@ function bubbleChart() {
 
       Tooltip
         .html('Word: ' + tooltipText[0].ngram + '<br/>' + "Count: " + tooltipText[0].count)
-        .style("left", (x + 340) + "px")
-        .style("top", (y + 220) + "px");
+        .style("left", (x + 410) + "px")
+        .style("top", (y + 230) + "px");
     }
 
     var mouseleave = function(d) {
